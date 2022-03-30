@@ -17,14 +17,19 @@ if [ $JANUS_WITH_RABBITMQ = "0" ]; then export JANUS_CONFIG_OPTIONS="$JANUS_CONF
 DEBIAN_FRONTEND=noninteractive apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get -yq --no-install-recommends install $JANUS_BUILD_DEPS_DEV ${JANUS_BUILD_DEPS_EXT}
 
+# install mesonbuild (required to build libnice)
+pip3 install meson
+
 # build libnice
 git clone https://gitlab.freedesktop.org/libnice/libnice ${BUILD_SRC}/libnice
 cd ${BUILD_SRC}/libnice
 git checkout ${JANUS_LIBNICE_VERSION}
-./autogen.sh
-./configure --prefix=/usr
-make
-make install
+meson builddir
+ninja -C builddir
+ninja -C builddir install
+
+# remove mesonbuild
+pip3 uninstall -y meson
 
 # build libsrtp
 curl -fSL https://github.com/cisco/libsrtp/archive/v${JANUS_LIBSRTP_VERSION}.tar.gz -o ${BUILD_SRC}/v${JANUS_LIBSRTP_VERSION}.tar.gz
