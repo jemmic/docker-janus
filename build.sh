@@ -44,7 +44,7 @@ if [ $JANUS_WITH_BORINGSSL = "1" ]; then
 
     git clone https://boringssl.googlesource.com/boringssl ${BUILD_SRC}/boringssl
     cd ${BUILD_SRC}/boringssl
-#    git checkout ${JANUS_BORINGSSL_VERSION}
+    git checkout ${JANUS_BORINGSSL_VERSION}
     sed -i s/" -Werror"//g CMakeLists.txt
     mkdir -p ${BUILD_SRC}/boringssl/build
     cd ${BUILD_SRC}/boringssl/build
