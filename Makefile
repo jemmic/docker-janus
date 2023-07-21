@@ -4,7 +4,7 @@ VERSION ?= latest
 
 REPO = docker-janus
 NAME = janus
-INSTANCE = buster
+INSTANCE = bullseye
 
 .PHONY: build push shell run start stop rm release
 

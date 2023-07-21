@@ -1,10 +1,10 @@
 ############################################################
-# Dockerfile - Janus Gateway on Debian Buster
+# Dockerfile - Janus Gateway on Debian Bullseye
 # https://github.com/jemmic/docker-janus
 ############################################################
 
-# set base image debian buster with minimal packages installed
-FROM debian:buster-slim
+# set base image debian bullseye with minimal packages installed
+FROM debian:bullseye-slim
 
 # file maintainer author
 MAINTAINER Christophe Kamphaus <christophe.kamphaus@jemmic.com>
@@ -16,14 +16,14 @@ ENV CONFIG_PATH="/opt/janus/etc/janus"
 # docker build arguments
 ARG BUILD_SRC="/usr/local/src"
 
-ARG JANUS_VERSION="v1.0.0"
-ARG JANUS_LIBNICE_VERSION="0.1.18"
-ARG JANUS_PAHO_MQTT_VERSION="v1.3.10"
-ARG JANUS_RABBITMQ_VERSION="v0.11.0"
-ARG JANUS_LIBSRTP_VERSION="2.4.2"
+ARG JANUS_VERSION="v1.1.4"
+ARG JANUS_LIBNICE_VERSION="0.1.21"
+ARG JANUS_PAHO_MQTT_VERSION="v1.3.12"
+ARG JANUS_RABBITMQ_VERSION="v0.13.0"
+ARG JANUS_LIBSRTP_VERSION="2.5.0"
 ARG JANUS_USRSCTP_VERSION="0.9.5.0"
-ARG JANUS_BORINGSSL_VERSION="225e8d39b50757af56e61cd0aa7958c56c487d54"
-ARG JANUS_LIBWEBSOCKETS_VERSION="v4.3.1"
+ARG JANUS_BORINGSSL_VERSION="e9f816b12b3e68de575d21e2a9b7d76e4e5c58ac"
+ARG JANUS_LIBWEBSOCKETS_VERSION="v4.3.2"
 
 ARG JANUS_WITH_POSTPROCESSING="1"
 ARG JANUS_WITH_BORINGSSL="1"
