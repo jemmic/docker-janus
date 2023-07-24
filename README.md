@@ -1,5 +1,5 @@
 # docker-janus
-`docker-janus` is a Debian 10 based docker image for [Meetecho's Janus Gateway](https://github.com/meetecho/janus-gateway)
+`docker-janus` is a Debian 11 based docker image for [Meetecho's Janus Gateway](https://github.com/meetecho/janus-gateway)
 
 ## Description
 
