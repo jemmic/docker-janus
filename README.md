@@ -56,7 +56,7 @@ A full set of default janus config files are in `./janus` folder, which is refer
 There is a `Makefile`, with some directives on building janus. Have a look at that file and check the options. Issuing a `make` will run the default build with the options set below.
 
 ```
-DataChannels support:      no
+DataChannels support:      yes
 BoringSSL (no OpenSSL):    yes
 Recordings post-processor: yes
 TURN REST API client:      yes
