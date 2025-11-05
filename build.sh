@@ -5,7 +5,7 @@ set -euo pipefail
 
 # init build env & install apt deps
 if [ $JANUS_WITH_POSTPROCESSING = "1" ]; then export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-post-processing"; fi
-if [ $JANUS_WITH_BORINGSSL = "1" ]; then echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list && export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV golang-go/bullseye-backports golang-src/bullseye-backports" && export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-boringssl --enable-dtls-settimeout"; fi
+if [ $JANUS_WITH_BORINGSSL = "1" ]; then echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list && export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV golang-go/bookworm-backports golang-src/bookworm-backports" && export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-boringssl --enable-dtls-settimeout"; fi
 if [ $JANUS_WITH_DOCS = "1" ]; then export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV graphviz" && export JANUS_BUILD_DEPS_EXT="$JANUS_BUILD_DEPS_EXT flex bison file sensible-utils" && export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-docs"; fi
 if [ $JANUS_WITH_REST = "1" ]; then export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV libmicrohttpd-dev"; else export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --disable-rest"; fi
 if [ $JANUS_WITH_DATACHANNELS = "0" ]; then export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --disable-data-channels"; fi
@@ -17,9 +17,6 @@ if [ $JANUS_WITH_RABBITMQ = "0" ]; then export JANUS_CONFIG_OPTIONS="$JANUS_CONF
 DEBIAN_FRONTEND=noninteractive apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get -yq --no-install-recommends install $JANUS_BUILD_DEPS_DEV ${JANUS_BUILD_DEPS_EXT}
 
-# install mesonbuild (required to build libnice)
-pip3 install meson
-
 # build libnice
 git clone https://gitlab.freedesktop.org/libnice/libnice ${BUILD_SRC}/libnice
 cd ${BUILD_SRC}/libnice
@@ -27,9 +24,6 @@ git checkout ${JANUS_LIBNICE_VERSION}
 meson builddir
 ninja -C builddir
 ninja -C builddir install
-
-# remove mesonbuild
-pip3 uninstall -y meson
 
 # build libsrtp
 curl -fSL https://github.com/cisco/libsrtp/archive/v${JANUS_LIBSRTP_VERSION}.tar.gz -o ${BUILD_SRC}/v${JANUS_LIBSRTP_VERSION}.tar.gz

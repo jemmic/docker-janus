@@ -4,11 +4,10 @@
 ############################################################
 
 # set base image debian bullseye with minimal packages installed
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim AS builder
 
-# file maintainer author
-MAINTAINER Christophe Kamphaus <christophe.kamphaus@jemmic.com>
-LABEL maintainer="Christophe Kamphaus <christophe.kamphaus@jemmic.com>"
+# file authors
+LABEL org.opencontainers.image.authors="Jemmic infrastrcture <jemmic-infrastructure@jemmic.com>"
 
 # docker build environments
 ENV CONFIG_PATH="/opt/janus/etc/janus"
@@ -57,6 +56,7 @@ ARG JANUS_BUILD_DEPS_DEV="\
     python3-setuptools \
     python3-wheel \
     ninja-build \
+    meson \
     "
 ARG JANUS_BUILD_DEPS_EXT="\
     libavutil-dev \
