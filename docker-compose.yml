@@ -8,7 +8,7 @@ networks:
 
 services:
   janus-gateway:
-    image: jemmic/docker-janus:0.10.3-buster
+    build: .
     container_name: janus-gateway
     volumes:
       - ./janus/etc/janus/:/opt/janus/etc/janus/

@@ -5,7 +5,7 @@ set -euo pipefail
 
 # init build env & install apt deps
 if [ $JANUS_WITH_POSTPROCESSING = "1" ]; then export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-post-processing"; fi
-if [ $JANUS_WITH_BORINGSSL = "1" ]; then echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list && export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV golang-go/bookworm-backports golang-src/bookworm-backports" && export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-boringssl --enable-dtls-settimeout"; fi
+if [ $JANUS_WITH_BORINGSSL = "1" ]; then echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list && export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV golang-go/bookworm-backports golang-src/bookworm-backports" && export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-boringssl --enable-dtls-settimeout"; else export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --disable-boringssl"; fi
 if [ $JANUS_WITH_DOCS = "1" ]; then export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV graphviz" && export JANUS_BUILD_DEPS_EXT="$JANUS_BUILD_DEPS_EXT flex bison file sensible-utils" && export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --enable-docs"; fi
 if [ $JANUS_WITH_REST = "1" ]; then export JANUS_BUILD_DEPS_DEV="$JANUS_BUILD_DEPS_DEV libmicrohttpd-dev"; else export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --disable-rest"; fi
 if [ $JANUS_WITH_DATACHANNELS = "0" ]; then export JANUS_CONFIG_OPTIONS="$JANUS_CONFIG_OPTIONS --disable-data-channels"; fi
@@ -17,25 +17,26 @@ if [ $JANUS_WITH_RABBITMQ = "0" ]; then export JANUS_CONFIG_OPTIONS="$JANUS_CONF
 DEBIAN_FRONTEND=noninteractive apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get -yq --no-install-recommends install $JANUS_BUILD_DEPS_DEV ${JANUS_BUILD_DEPS_EXT}
 
+
 # build libnice
 git clone https://gitlab.freedesktop.org/libnice/libnice ${BUILD_SRC}/libnice
 cd ${BUILD_SRC}/libnice
 git checkout ${JANUS_LIBNICE_VERSION}
-meson builddir
+meson builddir --prefix=/opt/janus --libdir=lib
 ninja -C builddir
 ninja -C builddir install
+
 
 # build libsrtp
 curl -fSL https://github.com/cisco/libsrtp/archive/v${JANUS_LIBSRTP_VERSION}.tar.gz -o ${BUILD_SRC}/v${JANUS_LIBSRTP_VERSION}.tar.gz
 tar xzf ${BUILD_SRC}/v${JANUS_LIBSRTP_VERSION}.tar.gz -C ${BUILD_SRC}
 cd ${BUILD_SRC}/libsrtp-${JANUS_LIBSRTP_VERSION}
-./configure --prefix=/usr --enable-openssl
+./configure --prefix=/opt/janus --enable-openssl
 make shared_library
 make install
 
 # build boringssl
 if [ $JANUS_WITH_BORINGSSL = "1" ]; then
-
     git clone https://boringssl.googlesource.com/boringssl ${BUILD_SRC}/boringssl
     cd ${BUILD_SRC}/boringssl
     git checkout ${JANUS_BORINGSSL_VERSION}
@@ -44,11 +45,11 @@ if [ $JANUS_WITH_BORINGSSL = "1" ]; then
     cd ${BUILD_SRC}/boringssl/build
     cmake -DCMAKE_CXX_FLAGS="-lrt" ..
     make
-    mkdir -p /opt/boringssl
-    cp -R ${BUILD_SRC}/boringssl/include /opt/boringssl/
-    mkdir -p /opt/boringssl/lib
-    cp ${BUILD_SRC}/boringssl/build/ssl/libssl.a /opt/boringssl/lib/
-    cp ${BUILD_SRC}/boringssl/build/crypto/libcrypto.a /opt/boringssl/lib/
+    mkdir -p /opt/janus/boringssl
+    cp -R ${BUILD_SRC}/boringssl/include /opt/janus/boringssl/
+    mkdir -p /opt/janus/boringssl/lib
+    cp ${BUILD_SRC}/boringssl/build/ssl/libssl.a /opt/janus/boringssl/lib/
+    cp ${BUILD_SRC}/boringssl/build/crypto/libcrypto.a /opt/janus/boringssl/lib/
 fi
 
 # build usrsctp
@@ -57,7 +58,7 @@ if [ $JANUS_WITH_DATACHANNELS = "1" ]; then
     cd ${BUILD_SRC}/usrsctp
     git checkout ${JANUS_USRSCTP_VERSION}
     ./bootstrap
-    ./configure --prefix=/usr
+    ./configure --prefix=/opt/janus
     make
     make install
 fi
@@ -70,7 +71,7 @@ if [ $JANUS_WITH_WEBSOCKETS = "1" ]; then
     mkdir ${BUILD_SRC}/libwebsockets/build
     cd ${BUILD_SRC}/libwebsockets/build
     # See https://github.com/meetecho/janus-gateway/issues/732 re: LWS_MAX_SMP
-    cmake -DLWS_MAX_SMP=1 -DLWS_IPV6=ON -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_C_FLAGS="-fpic" ..
+    cmake -DLWS_MAX_SMP=1 -DLWS_IPV6=ON -DCMAKE_INSTALL_PREFIX:PATH=/opt/janus -DCMAKE_C_FLAGS="-fpic" ..
     make
     make install
 fi
@@ -81,7 +82,7 @@ if [ $JANUS_WITH_MQTT = "1" ]; then
     cd ${BUILD_SRC}/paho.mqtt.c
     git checkout ${JANUS_PAHO_MQTT_VERSION}
     make
-    make install
+    make install DESTDIR=/opt/janus
 fi
 
 # build rabbitmq-c
@@ -93,7 +94,7 @@ if [ $JANUS_WITH_RABBITMQ = "1" ]; then
     git submodule update
     mkdir ${BUILD_SRC}/rabbitmq-c/build
     cd ${BUILD_SRC}/rabbitmq-c/build
-    cmake -DCMAKE_INSTALL_PREFIX=/usr ..
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/janus ..
     cmake --build . --target install
 fi
 
@@ -108,9 +109,9 @@ if [ $JANUS_WITH_DOCS = "1" ]; then
     git checkout Release_1_8_11
     mkdir ${BUILD_SRC}/doxygen/build
     cd ${BUILD_SRC}/doxygen/build
-    cmake -G "Unix Makefiles" ..
+    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/opt/janus ..
     make
-    checkinstall --pkgname doxygen -y
+    checkinstall --pkgname doxygen -y --install=no --fstrans=yes --pkgversion=1.8.11 --default --pakdir=/opt/janus
 fi
 
 # build janus-gateway
@@ -119,35 +120,7 @@ if [ $JANUS_WITH_FREESWITCH_PATCH = "1" ]; then curl -fSL https://raw.githubuser
 cd ${BUILD_SRC}/janus-gateway
 git checkout ${JANUS_VERSION}
 ./autogen.sh
-./configure ${JANUS_CONFIG_DEPS} $JANUS_CONFIG_OPTIONS
+./configure --prefix=/opt/janus ${JANUS_CONFIG_DEPS} $JANUS_CONFIG_OPTIONS
 make
 make install
 make configs
-
-# folder ownership
-chown -R janus:janus /opt/janus
-
-# build cleanup
-cd ${BUILD_SRC}
-if [ $JANUS_WITH_BORINGSSL = "1" ]; then rm -rf boringssl; fi
-if [ $JANUS_WITH_DATACHANNELS = "1" ]; then rm -rf usrsctp; fi
-if [ $JANUS_WITH_WEBSOCKETS = "1" ]; then rm -rf libwebsockets; fi
-if [ $JANUS_WITH_MQTT = "1" ]; then rm -rf paho.mqtt.c; fi
-if [ $JANUS_WITH_RABBITMQ = "1" ]; then rm -rf rabbitmq-c; fi
-if [ $JANUS_WITH_DOCS = "1" ]; then
-    rm checkinstall.deb
-    rm -rf doxygen
-    DEBIAN_FRONTEND=noninteractive apt-get -y --auto-remove purge checkinstall doxygen
-fi
-rm -rf \
-        v${JANUS_LIBSRTP_VERSION}.tar.gz \
-        libsrtp-${JANUS_LIBSRTP_VERSION} \
-        janus-gateway
-DEBIAN_FRONTEND=noninteractive apt-get -y --auto-remove purge ${JANUS_BUILD_DEPS_EXT}
-DEBIAN_FRONTEND=noninteractive apt-get -y clean
-DEBIAN_FRONTEND=noninteractive apt-get -y autoclean
-DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
-rm -rf /usr/share/locale/*
-rm -rf /var/cache/debconf/*-old
-rm -rf /usr/share/doc/*
-rm -rf /var/lib/apt/*
